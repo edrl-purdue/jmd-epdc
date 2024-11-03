@@ -1,5 +1,6 @@
 # Import packages
 import numpy as np
+import tensorflow as tf
 import tensorflow_probability as tfp
 import gpflow as gpf
 
@@ -84,3 +85,24 @@ def build_GPC_model(X_train_n, fc_train):
     m.kernel.kernels[0].lengthscales = gpf.Parameter(m_temp.numpy(), transform=sigmoid_transf)
 
     return m
+
+def train_gp_model_EPDC(m, X_train_n, f_train, NaN_flag, iter):
+    # Try to train the GP model using L-BFGS-B optimizer
+    opt = gpf.optimizers.Scipy()
+    opt.minimize(m.training_loss, variables=m.trainable_variables, options=dict(maxiter=1000),
+                    method="L-BFGS-B")
+    
+    # Check for nan values; if they occur reset model and use adagrad to train GPs
+    if np.isnan(m.kernel.kernels[0].lengthscales.numpy()).any():
+        m = build_GPR_model_EPDC(X_train_n, f_train)
+        optimizer = tf.keras.optimizers.Adagrad(learning_rate=0.01)
+        print('Training GP model using adagrad')
+
+        @tf.function
+        def step_1(i):
+            optimizer.minimize(m.training_loss, m.trainable_variables)
+        for i in tf.range(10000):
+            step_1(i)
+        NaN_flag[iter] = 1
+    # print('Training GPR model completed')
+    return m, NaN_flag
