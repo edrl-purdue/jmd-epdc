@@ -4,7 +4,9 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 import gpflow as gpf
 
-def build_GPR_model_EPDC(X_train_n, y_train_n):
+# Model used for the proposed approach and the EEI approach.
+# You can modify this function to use different kernels or mean functions.
+def build_gpr_model(X_train_n, y_train_n):
     # Dimension of the input space
     n_dimensions = X_train_n.shape[1]
 
@@ -33,7 +35,8 @@ def build_GPR_model_EPDC(X_train_n, y_train_n):
 
     return m
 
-def build_GPR_model(X_train_n, y_train_n):
+# GPR settings recommended by Dr. Anh Tran, one of the developers of the sr_MO_BO_3GP algorithm.
+def build_gpr_model_sr_MO_BO_3GP(X_train_n, y_train_n):
     # Dimension of the input space
     n_dimensions = X_train_n.shape[1]
 
@@ -62,7 +65,8 @@ def build_GPR_model(X_train_n, y_train_n):
 
     return m
 
-def build_GPC_model(X_train_n, fc_train):
+# GPC settings recommended by Dr. Anh Tran, one of the developers of the sr_MO_BO_3GP algorithm.
+def build_gpc_model_sr_MO_BO_3GP(X_train_n, fc_train):
     # Dimension of the input space
     n_dimensions = X_train_n.shape[1]
 
@@ -86,7 +90,7 @@ def build_GPC_model(X_train_n, fc_train):
 
     return m
 
-def train_gp_model_EPDC(m, X_train_n, f_train, NaN_flag, iter):
+def train_gpr_model(m, X_train_n, f_train, NaN_flag, iter):
     # Try to train the GP model using L-BFGS-B optimizer
     opt = gpf.optimizers.Scipy()
     opt.minimize(m.training_loss, variables=m.trainable_variables, options=dict(maxiter=1000),
@@ -94,7 +98,7 @@ def train_gp_model_EPDC(m, X_train_n, f_train, NaN_flag, iter):
     
     # Check for nan values; if they occur reset model and use adagrad to train GPs
     if np.isnan(m.kernel.kernels[0].lengthscales.numpy()).any():
-        m = build_GPR_model_EPDC(X_train_n, f_train)
+        m = build_gpr_model(X_train_n, f_train)
         optimizer = tf.keras.optimizers.Adagrad(learning_rate=0.01)
         print('Training GP model using adagrad')
 
