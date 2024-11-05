@@ -110,3 +110,45 @@ def train_gpr_model(m, X_train_n, f_train, NaN_flag, iter):
         NaN_flag[iter] = 1
     # print('Training GPR model completed')
     return m, NaN_flag
+
+def train_gpr_model_sr_MO_BO_3GP(m, X_train_n, F_aug_Tcheb_neg, NaN_flag, iter):
+    # Try to train the GP model using L-BFGS-B optimizer
+    opt = gpf.optimizers.Scipy()
+    opt.minimize(m.training_loss, variables=m.trainable_variables, options=dict(maxiter=1000),
+                    method="L-BFGS-B")
+    
+    # Check for nan values; if they occur reset model and use adagrad to train GPs
+    if np.isnan(m.kernel.kernels[0].lengthscales.numpy()).any():
+        m = build_gpr_model_sr_MO_BO_3GP(X_train_n, F_aug_Tcheb_neg)
+        optimizer = tf.keras.optimizers.Adagrad(learning_rate=0.01)
+        print('Training GP model using adagrad')
+
+        @tf.function
+        def step_1(i):
+            optimizer.minimize(m.training_loss, m.trainable_variables)
+        for i in tf.range(10000):
+            step_1(i)
+        NaN_flag[iter] = 1
+    # print('Training GPR model completed')
+    return m, NaN_flag
+
+def train_gpc_model_sr_MO_BO_3GP(m, X_train_n, fc_train, NaN_flag, iter):
+    # Try to train the GP model using L-BFGS-B optimizer
+    opt = gpf.optimizers.Scipy()
+    opt.minimize(m.training_loss, variables=m.trainable_variables, options=dict(maxiter=1000),
+                    method="L-BFGS-B")
+    
+    # Check for nan values; if they occur reset model and use adagrad to train GPs
+    if np.isnan(m.kernel.kernels[0].lengthscales.numpy()).any():
+        m = build_gpc_model_sr_MO_BO_3GP(X_train_n, fc_train)
+        optimizer = tf.keras.optimizers.Adagrad(learning_rate=0.01)
+        print('Training GP model using adagrad')
+
+        @tf.function
+        def step_1(i):
+            optimizer.minimize(m.training_loss, m.trainable_variables)
+        for i in tf.range(10000):
+            step_1(i)
+        NaN_flag[iter] = 1
+    # print('Training GPR model completed')
+    return m, NaN_flag
